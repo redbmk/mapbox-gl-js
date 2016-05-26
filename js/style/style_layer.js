@@ -20,7 +20,7 @@ StyleLayer.create = function(layer, refLayer) {
         line: require('./style_layer/line_style_layer'),
         raster: require('./style_layer/raster_style_layer'),
         symbol: require('./style_layer/symbol_style_layer'),
-        building: require('./style_layer/building_style_layer')
+        extrusion: require('./style_layer/extrusion_style_layer')
     };
     return new Classes[(refLayer || layer).type](layer, refLayer);
 };
