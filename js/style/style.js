@@ -33,6 +33,7 @@ function Style(stylesheet, animationLoop) {
     this._groups = [];
     this.sources = {};
     this.zoomHistory = {};
+    this._light = {};
 
     util.bindAll([
         '_forwardSourceEvent',
@@ -59,6 +60,18 @@ function Style(stylesheet, animationLoop) {
         var sources = stylesheet.sources;
         for (var id in sources) {
             this.addSource(id, sources[id]);
+        }
+
+        if (stylesheet.light) {
+            if (stylesheet.light['light-anchor']) {
+                this._light.lightAnchor = stylesheet.light['light-anchor'];
+            }
+            if (stylesheet.light['light-direction']) {
+                this._light.lightDirection = stylesheet.light['light-direction'];
+            }
+            if (stylesheet.light['light-color']) {
+                this._light.lightColor = stylesheet.light['light-color'];
+            }
         }
 
         if (stylesheet.sprite) {
@@ -597,6 +610,7 @@ Style.prototype = util.inherit(Evented, {
             version: this.stylesheet.version,
             name: this.stylesheet.name,
             metadata: this.stylesheet.metadata,
+            light: this.stylesheet.light,
             center: this.stylesheet.center,
             zoom: this.stylesheet.zoom,
             bearing: this.stylesheet.bearing,
