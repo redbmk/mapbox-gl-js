@@ -92,7 +92,7 @@ StyleLayer.prototype = util.inherit(Evented, {
         } else {
             var key = 'layers.' + this.id + '.layout.' + name;
             if (this._handleErrors(validateStyle.layoutProperty, key, name, value)) return;
-            this._layoutDeclarations[name] = new StyleDeclaration(this._layoutSpecifications[name], value);
+            this._layoutDeclarations[name] = new StyleDeclaration(name, this._layoutSpecifications[name], value);
         }
         this._updateLayoutValue(name);
     },
@@ -136,7 +136,7 @@ StyleLayer.prototype = util.inherit(Evented, {
                 delete this._paintDeclarations[klass || ''][name];
             } else {
                 if (this._handleErrors(validateStyle.paintProperty, validateStyleKey, name, value)) return;
-                this._paintDeclarations[klass || ''][name] = new StyleDeclaration(this._paintSpecifications[name], value);
+                this._paintDeclarations[klass || ''][name] = new StyleDeclaration(name, this._paintSpecifications[name], value);
             }
         }
     },
@@ -295,7 +295,7 @@ StyleLayer.prototype = util.inherit(Evented, {
         var spec = this._paintSpecifications[name];
 
         if (declaration === null || declaration === undefined) {
-            declaration = new StyleDeclaration(spec, spec.default);
+            declaration = new StyleDeclaration(name, spec, spec.default);
         }
 
         if (oldTransition && oldTransition.declaration.json === declaration.json) return;
