@@ -72,6 +72,9 @@ function Style(stylesheet, animationLoop) {
             if (stylesheet.light['light-color']) {
                 this._light.lightColor = stylesheet.light['light-color'];
             }
+            if (stylesheet.light['light-intensity']) {
+                this._light.lightIntensity = stylesheet.light['light-intensity']
+            }
         }
 
         if (stylesheet.sprite) {
