@@ -106,7 +106,7 @@ Painter.prototype.setup = function() {
 };
 
 /*
- * Set the lighting properties (used for extrusions).
+ * Set the lighting properties (used for extruded geometries).
  */
 Painter.prototype.setLighting = function(lightOptions) {
     for (var key in lightOptions) {
@@ -284,7 +284,15 @@ Painter.prototype.renderLayer = function(painter, source, layer, coords) {
     if (layer.isHidden(this.transform.zoom)) return;
     if (layer.type !== 'background' && !coords.length) return;
     this.id = layer.id;
-    draw[layer.type](painter, source, layer, coords);
+
+    var type = layer.type;
+    if (type === 'fill' &&
+        (!layer.isPaintValueFeatureConstant('fill-extrude-height') ||
+        layer.getPaintValue('fill-extrude-height') != 0)) {
+        type = 'extrusion';
+    }
+
+    draw[type](painter, source, layer, coords);
 };
 
 Painter.prototype.setDepthSublayer = function(n) {
