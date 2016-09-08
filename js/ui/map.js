@@ -4,6 +4,7 @@ var util = require('../util/util');
 var browser = require('../util/browser');
 var window = require('../util/window');
 var Evented = require('../util/evented');
+var interpolate = require('../util/interpolate');
 var DOM = require('../util/dom');
 
 var Style = require('../style/style');
@@ -647,12 +648,8 @@ util.extend(Map.prototype, /** @lends Map.prototype */{
         } else if (style instanceof Style) {
             this.style = style;
         } else {
-<<<<<<< HEAD
             this.style = new Style(style, this.animationLoop);
-=======
-            this.style = new Style(style, this.animationLoop, this._workerCount);
             if (style.light) this._setLightOptions(style.light);
->>>>>>> Cleanups and hardening
         }
 
         this.style
