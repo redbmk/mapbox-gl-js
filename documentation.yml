@@ -43,6 +43,7 @@ toc:
   - CameraOptions
   - AnimationOptions
   - StyleOptions
+  - LightingOptions
   - name: Overlays
   - Popup
   - Marker
