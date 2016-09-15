@@ -32,6 +32,13 @@ GeoJSONWorkerSource.prototype = util.inherit(VectorTileWorkerSource, /** @lends 
     // object mapping source ids to geojson-vt-like tile indexes
     _geoJSONIndexes: {},
 
+    // index of possible custom aggregate functions for supercluster
+    _superclusterAggregateFunctions: {
+        sum: function (a, b) { return a + b; },
+        min: Math.min,
+        max: Math.max
+    },
+
     /**
      * See {@link VectorTileWorkerSource#loadTile}.
      */
@@ -127,12 +134,49 @@ GeoJSONWorkerSource.prototype = util.inherit(VectorTileWorkerSource, /** @lends 
     _indexData: function (data, params, callback) {
         try {
             if (params.cluster) {
-                callback(null, supercluster(params.superclusterOptions).load(data.features));
+                callback(null, supercluster(this._getSuperclusterOptions(params)).load(data.features));
             } else {
                 callback(null, geojsonvt(data, params.geojsonVtOptions));
             }
         } catch (err) {
             return callback(err);
         }
+    },
+
+    /**
+     * Accumulate properties within a cluster
+     * @param {object} aggregates keys define the property name and value defines the aggregate type
+     * @param {object} pointProperties properties from a single point
+     * @param {object} neighborProperties properties from the neighboring point or cluster
+     * @private
+     */
+    _superclusterAccumulator: function(aggregates, pointProperties, neighborProperties) {
+        var newProperties = {};
+
+        for (var property in aggregates) {
+            newProperties[property] = this.aggregateFunctions[aggregates[property]](
+                pointProperties[property],
+                neighborProperties[property]
+            );
+        }
+
+        return newProperties;
+    },
+
+    /**
+     * Modify supercluster options to include custom aggregators
+     * @param {object} params forwarded from loadTile.
+     * @private
+     */
+    _getSuperclusterOptions: function (params) {
+        var options = util.extend({}, params.superclusterOptions);
+        var aggregates = options.aggregates;
+
+        if (aggregates) {
+            options.accumulator = this._superclusterAccumulator.bind(this, aggregates);
+            delete options.aggregates;
+        }
+
+        return options;
     }
 });
