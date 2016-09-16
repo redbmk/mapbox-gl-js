@@ -127,12 +127,65 @@ GeoJSONWorkerSource.prototype = util.inherit(VectorTileWorkerSource, /** @lends 
     _indexData: function (data, params, callback) {
         try {
             if (params.cluster) {
-                callback(null, supercluster(params.superclusterOptions).load(data.features));
+                callback(null, supercluster(this._getSuperclusterOptions(params)).load(data.features));
             } else {
                 callback(null, geojsonvt(data, params.geojsonVtOptions));
             }
         } catch (err) {
             return callback(err);
         }
+    },
+
+    // index of possible custom aggregate functions for supercluster
+    _superclusterAggregateFunctions: {
+        sum: function (a, b) {
+            return (Number(a) || 0) + (Number(b) || 0);
+        },
+        min: function (a, b) {
+            return Math.min(Number(a) || Infinity, Number(b) || Infinity);
+        },
+        max: function (a, b) {
+            return Math.max(Number(a) || -Infinity, Number(b) || -Infinity);
+        }
+    },
+
+    /**
+     * Accumulate properties within a cluster
+     * @param {object} aggregates keys define the property name and value defines the aggregate type
+     * @param {object} pointProperties properties from a single point
+     * @param {object} neighborProperties properties from the neighboring point or cluster
+     * @private
+     */
+    _superclusterAccumulator: function(aggregates, point, neighbor) {
+        var newProperties = {};
+
+        for (var destProperty in aggregates) {
+            var aggType = aggregates[destProperty][0];
+            var srcProperty = aggregates[destProperty][1];
+
+            newProperties[destProperty] = this._superclusterAggregateFunctions[aggType](
+                point.properties[point.numPoints > 1 ? srcProperty : destProperty],
+                neighbor.properties[neighbor.numPoints > 1 ? srcProperty : destProperty],
+            );
+        }
+
+        return newProperties;
+    },
+
+    /**
+     * Modify supercluster options to include custom aggregators
+     * @param {object} params forwarded from loadTile.
+     * @private
+     */
+    _getSuperclusterOptions: function (params) {
+        var options = util.extend({}, params.superclusterOptions);
+        var aggregates = options.aggregates;
+
+        if (aggregates) {
+            options.accumulator = this._superclusterAccumulator.bind(this, aggregates);
+            delete options.aggregates;
+        }
+
+        return options;
     }
 });
