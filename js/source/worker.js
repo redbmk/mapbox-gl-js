@@ -161,6 +161,49 @@ util.extend(Worker.prototype, {
         }
     },
 
+    _superclusterAggregateFunctions: {
+        sum: function (a, b) { return a + b; },
+        min: Math.min,
+        max: Math.max
+    },
+
+    /**
+     * Accumulate properties within a cluster
+     * @param {object} aggregates keys define the property name and value defines the aggregate type
+     * @param {object} pointProperties properties from a single point
+     * @param {object} neighborProperties properties from the neighboring point or cluster
+     * @private
+     */
+    _superclusterAccumulator: function(aggregates, pointProperties, neighborProperties) {
+        var newProperties = {};
+
+        for (var property in aggregates) {
+            newProperties[property] = this._superclusterAggregateFunctions[aggregates[property]](
+                pointProperties[property],
+                neighborProperties[property]
+            );
+        }
+
+        return newProperties;
+    },
+
+    /**
+     * Modify supercluster options to include custom aggregators
+     * @param {object} params forwarded from loadTile.
+     * @private
+     */
+    _getSuperclusterOptions: function (params) {
+        var options = util.extend({}, params.superclusterOptions);
+        var aggregates = options.aggregates;
+
+        if (aggregates) {
+            options.accumulator = this._superclusterAccumulator.bind(this, aggregates);
+            delete options.aggregates;
+        }
+
+        return options;
+    },
+
     'parse geojson': function(params, callback) {
         var indexData = function(err, data) {
             rewind(data, true);
@@ -170,7 +213,7 @@ util.extend(Worker.prototype, {
             }
             try {
                 this.geoJSONIndexes[params.source] = params.cluster ?
-                    supercluster(params.superclusterOptions).load(data.features) :
+                    supercluster(this._getSuperclusterOptions(params)).load(data.features) :
                     geojsonvt(data, params.geojsonVtOptions);
             } catch (err) {
                 return callback(err);
