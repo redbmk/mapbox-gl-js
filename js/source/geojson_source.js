@@ -95,6 +95,7 @@ class GeoJSONSource extends Evented {
                 maxZoom: Math.min(options.clusterMaxZoom, this.maxzoom - 1) || (this.maxzoom - 1),
                 extent: EXTENT,
                 radius: (options.clusterRadius || 50) * scale,
+                aggregates: options.clusterAggregates,
                 log: false
             }
         }, options.workerOptions);
