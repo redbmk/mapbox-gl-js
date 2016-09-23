@@ -139,8 +139,14 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
     // index of possible custom aggregate functions for supercluster
     _superclusterAggregateFunctions: {
         sum: function (a, b) { return (Number(a) || 0) + (Number(b) || 0); },
-        min: function (a, b) { return a < b ? a : b; },
-        max: function (a, b) { return a > b ? a : b; },
+        min: function (a, b) {
+            return Math.min(Number(a) || Infinity, Number(b) || Infinity);
+        },
+        max: function (a, b) {
+            return Math.max(Number(a) || -Infinity, Number(b) || -Infinity);
+        },
+        min_string: function (a, b) { return a < b ? a : b; },
+        max_string: function (a, b) { return a > b ? a : b; },
         and: function (a, b) { return a && b; },
         or: function (a, b) { return a || b; }
     },
@@ -160,8 +166,8 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
             var srcProperty = aggregates[destProperty][1];
 
             newProperties[destProperty] = this._superclusterAggregateFunctions[aggType](
-                point.properties[point.numPoints > 1 ? srcProperty : destProperty],
-                neighbor.properties[neighbor.numPoints > 1 ? srcProperty : destProperty]
+                point.properties[point.numPoints > 1 ? destProperty : srcProperty],
+                neighbor.properties[neighbor.numPoints > 1 ? destProperty : srcProperty]
             );
         }
 
