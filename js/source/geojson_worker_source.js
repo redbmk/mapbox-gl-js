@@ -138,15 +138,11 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
 
     // index of possible custom aggregate functions for supercluster
     _superclusterAggregateFunctions: {
-        sum: function (a, b) {
-            return (Number(a) || 0) + (Number(b) || 0);
-        },
-        min: function (a, b) {
-            return Math.min(Number(a) || Infinity, Number(b) || Infinity);
-        },
-        max: function (a, b) {
-            return Math.max(Number(a) || -Infinity, Number(b) || -Infinity);
-        }
+        sum: function (a, b) { return (Number(a) || 0) + (Number(b) || 0); },
+        min: function (a, b) { return a < b ? a : b; },
+        max: function (a, b) { return a > b ? a : b; },
+        and: function (a, b) { return a && b },
+        or: function (a, b) { return a || b }
     },
 
     /**
