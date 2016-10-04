@@ -19,6 +19,10 @@
 <body>
 
 <div id="controls">
+  <label>
+    Num points
+    <input type="number" value="50000"/>
+  </label>
   <button onclick="loadMap('original')">Original</button>
   <button onclick="loadMap('updated')">Updated</button>
   <button onclick="loadMap('updated', true)">Aggregates</button>
@@ -40,6 +44,8 @@ function loadMap(type, useAggregates) {
   results.innerHTML = '<b>Loading...</b>';
   document.querySelector('#controls').append(results);
 
+  var numPoints = Number(document.querySelector('#controls input').value) || 0;
+
   if (window.map) {
     window.map.remove();
   }
@@ -52,14 +58,32 @@ function loadMap(type, useAggregates) {
   }).on('load', function() {
     // Add a new source from our GeoJSON data and set the
     // 'cluster' option to true.
+
+    var points = [];
+    for (var i = 0; i < numPoints; i++) {
+      points[i] = {
+        type: 'Feature',
+        properties: {
+          magnitude: Math.round(800 * Math.random() + 100) / 100
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [
+            360 * Math.random() - 180,
+            180 * Math.random() - 90
+          ]
+        }
+      };
+    }
+
     var startTime = +(new Date());
 
     map.on('source.load', function(data) {
       var timing = (new Date()) - startTime;
       var resultString = type;
-      if (useAggregates) {
-        resultString += '-aggregates';
-      }
+      if (useAggregates) resultString += '-aggregates';
+
+      resultString += ' (' + (numPoints > 1000 ? Math.round(numPoints/1000) + 'k' : numPoints) + ')';
 
       results.innerHTML = '<b>' + resultString + '</b>: ' + timing + 'ms';
       setButtons(false);
@@ -69,7 +93,7 @@ function loadMap(type, useAggregates) {
       type: "geojson",
       // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
       // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
-      data: "./fake-earthquakes.geojson",
+      data: { type: 'FeatureCollection', features: points },
       cluster: true,
       clusterMaxZoom: 14, // Max zoom to cluster points on
       clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
