@@ -4,43 +4,85 @@
     <meta charset='utf-8' />
     <title></title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src="https://cdn.rawgit.com/redbmk/mapbox-gl-js/a785572b3d545bb793dbdce067b2d5ac23913f29/dist/mapbox-gl.js"></script>
-    <link href="https://cdn.rawgit.com/redbmk/mapbox-gl-js/a785572b3d545bb793dbdce067b2d5ac23913f29/dist/mapbox-gl.css" rel="stylesheet" />
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.25.1/mapbox-gl.js"></script>
+    <script>mapboxes = { original: mapboxgl }; delete window.mapboxgl;</script>
+    <script src="https://cdn.rawgit.com/redbmk/mapbox-gl-js/33e605967b7ce06037da9cce2cefb5172c2fd950/dist/mapbox-gl.js"></script>
+    <script>mapboxes.updated = mapboxgl; delete window.mapboxgl;</script>
+    <link href="https://cdn.rawgit.com/redbmk/mapbox-gl-js/33e605967b7ce06037da9cce2cefb5172c2fd950/dist/mapbox-gl.css" rel="stylesheet" />
     <style>
         body { margin:0; padding:0; }
-        #map { position:absolute; top:0; bottom:0; width:100%; }
+        #controls { position:absolute; top: 0; width: 100%; }
+        #controls > span { padding-right: 2px; }
+        #map-container { position:absolute; top:50px; bottom:0; width:100%; }
     </style>
 </head>
 <body>
 
-<div id='map'></div>
+<div id="controls">
+  <button onclick="loadMap('original')">Original</button>
+  <button onclick="loadMap('updated')">Updated</button>
+  <button onclick="loadMap('updated', true)">Aggregates</button>
+</div>
+<div id="map-container"></div>
 
 <script>
-mapboxgl.accessToken = 'pk.eyJ1IjoicmVkYm1rIiwiYSI6ImNpcjZiZWZ5NDAwMjFpYm5vZm80dWZ0eGUifQ.CY_shnKYFm1hVs5ZKPH1Og';
-var map = new mapboxgl.Map({
-    container: 'map',
-    style: 'mapbox://styles/mapbox/dark-v9',
-    center: [-103.59179687498357, 40.66995747013945],
-    zoom: 3
-});
+mapboxes.original.accessToken = mapboxes.updated.accessToken = 'pk.eyJ1IjoicmVkYm1rIiwiYSI6ImNpcjZiZWZ5NDAwMjFpYm5vZm80dWZ0eGUifQ.CY_shnKYFm1hVs5ZKPH1Og';
 
-map.on('load', function() {
+function setButtons(disabled) {
+  document.querySelectorAll('#controls button').forEach(function (button) {
+    button.disabled = disabled;
+  });
+}
 
+function loadMap(type, useAggregates) {
+  setButtons(true);
+  var results = document.createElement('span');
+  results.innerHTML = '<b>Loading...</b>';
+  document.querySelector('#controls').append(results);
+
+  if (window.map) {
+    window.map.remove();
+  }
+
+  window.map = new mapboxes[type].Map({
+      container: 'map-container',
+      style: 'mapbox://styles/mapbox/dark-v9',
+      center: [-103.59179687498357, 40.66995747013945],
+      zoom: 3
+  }).on('load', function() {
     // Add a new source from our GeoJSON data and set the
     // 'cluster' option to true.
-    map.addSource("earthquakes", {
-        type: "geojson",
-        // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
-        // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
-        data: "./earthquakes.geojson",
-        cluster: true,
-        clusterMaxZoom: 14, // Max zoom to cluster points on
-        clusterRadius: 50, // Radius of each cluster when clustering points (defaults to 50)
-        clusterAggregates: {
-            "minMagnitude": [ "min", "Primary ID" ],
-            "maxMagnitude": [ "max", "Primary ID" ]
-        }
+    var startTime = +(new Date());
+
+    map.on('source.load', function(data) {
+      var timing = (new Date()) - startTime;
+      var resultString = type;
+      if (useAggregates) {
+        resultString += '-aggregates';
+      }
+
+      results.innerHTML = '<b>' + resultString + '</b>: ' + timing + 'ms';
+      setButtons(false);
     });
+
+    var sourceData = {
+      type: "geojson",
+      // Point to GeoJSON data. This example visualizes all M1.0+ earthquakes
+      // from 12/22/15 to 1/21/16 as logged by USGS' Earthquake hazards program.
+      data: "./fake-earthquakes.geojson",
+      cluster: true,
+      clusterMaxZoom: 14, // Max zoom to cluster points on
+      clusterRadius: 50 // Radius of each cluster when clustering points (defaults to 50)
+    };
+
+    if (useAggregates) {
+      sourceData.clusterAggregates = {
+        "minMagnitude": [ "min", "magnitude" ],
+        "maxMagnitude": [ "max", "magnitude" ]
+      };
+    }
+
+    map.addSource("earthquakes", sourceData);
 
     // Use the earthquakes source to create five layers:
     // One for unclustered points, three for each cluster category,
@@ -57,12 +99,13 @@ map.on('load', function() {
     // Display the earthquake data in three layers, each filtered to a range of
     // count values. Each range gets a different fill color.
     var layers = [
-        [5, '#f28cb1'],
-        [4, '#f1f075'],
-        [0, '#51bbd6']
+        [useAggregates ? 8 : 150, '#f28cb1'],
+        [useAggregates ? 6 : 20, '#f1f075'],
+        [useAggregates ? 0 : 0, '#51bbd6']
     ];
 
     layers.forEach(function (layer, i) {
+        var property = useAggregates ? "maxMagnitude" : "point_count";
         map.addLayer({
             "id": "cluster-" + i,
             "type": "circle",
@@ -72,10 +115,10 @@ map.on('load', function() {
                 "circle-radius": 25
             },
             "filter": i === 0 ?
-                [">=", "maxMagnitude", layer[0]] :
+                [">=", property, layer[0]] :
                 ["all",
-                    [">=", "maxMagnitude", layer[0]],
-                    ["<", "maxMagnitude", layers[i - 1][0]]]
+                    [">=", property, layer[0]],
+                    ["<", property, layers[i - 1][0]]]
         });
     });
 
@@ -85,16 +128,17 @@ map.on('load', function() {
         "type": "symbol",
         "source": "earthquakes",
         "layout": {
-            "text-field": "{minMagnitude} - {maxMagnitude}",
+            "text-field": useAggregates ? "{minMagnitude} - {maxMagnitude}" : "{point_count}",
             "text-font": [
                 "DIN Offc Pro Medium",
                 "Arial Unicode MS Bold"
             ],
             "text-size": 12
         },
-        "filter": ["has", "maxMagnitude"]
+        "filter": ["has", useAggregates ? "maxMagnitude" : "point_count"]
     });
-});
+  });
+}
 </script>
 
 </body>
