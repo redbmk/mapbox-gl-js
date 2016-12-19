@@ -7,13 +7,9 @@ const GeoJSONWrapper = require('./geojson_wrapper');
 const vtpbf = require('vt-pbf');
 const supercluster = require('supercluster');
 const geojsonvt = require('geojson-vt');
+const superclusterAggregateFunctions = require('./supercluster_aggregate_functions');
 
 const VectorTileWorkerSource = require('./vector_tile_worker_source');
-
-function toNumber(input, defaultValue) {
-    let num = Number(input);
-    return isNaN(input) ? defaultValue : num;
-}
 
 /**
  * The {@link WorkerSource} implementation that supports {@link GeoJSONSource}.
@@ -139,22 +135,7 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
         } catch (err) {
             return callback(err);
         }
-    },
-
-    // index of possible custom aggregate functions for supercluster
-    _superclusterAggregateFunctions: {
-        sum(a, b) { return toNumber(a, 0) + toNumber(b, 0); },
-        min(a, b) {
-            return Math.min(toNumber(a, Infinity), toNumber(b, Infinity));
-        },
-        max(a, b) {
-            return Math.max(toNumber(a, -Infinity), toNumber(b, -Infinity));
-        },
-        min_string(a, b) { return a < b ? a : b; },
-        max_string(a, b) { return a > b ? a : b; },
-        and(a, b) { return a && b; },
-        or(a, b) { return a || b; }
-    },
+    }
 
     /**
      * Accumulate properties within a cluster
@@ -170,14 +151,14 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
             var aggType = aggregates[destProperty][0];
             var srcProperty = aggregates[destProperty][1];
 
-            newProperties[destProperty] = this._superclusterAggregateFunctions[aggType](
+            newProperties[destProperty] = superclusterAggregateFunctions[aggType](
                 point.properties[point.numPoints > 1 ? destProperty : srcProperty],
                 neighbor.properties[neighbor.numPoints > 1 ? destProperty : srcProperty]
             );
         }
 
         return newProperties;
-    },
+    }
 
     /**
      * Modify supercluster options to include custom aggregators
