@@ -10,6 +10,11 @@ const geojsonvt = require('geojson-vt');
 
 const VectorTileWorkerSource = require('./vector_tile_worker_source');
 
+function toNumber(input, defaultValue) {
+    let num = Number(input);
+    return isNaN(input) ? defaultValue : num;
+}
+
 /**
  * The {@link WorkerSource} implementation that supports {@link GeoJSONSource}.
  * This class is designed to be easily reused to support custom source types
@@ -138,17 +143,17 @@ class GeoJSONWorkerSource extends VectorTileWorkerSource {
 
     // index of possible custom aggregate functions for supercluster
     _superclusterAggregateFunctions: {
-        sum: function (a, b) { return (Number(a) || 0) + (Number(b) || 0); },
-        min: function (a, b) {
-            return Math.min(Number(a) || Infinity, Number(b) || Infinity);
+        sum(a, b) { return toNumber(a, 0) + toNumber(b, 0); },
+        min(a, b) {
+            return Math.min(toNumber(a, Infinity), toNumber(b, Infinity));
         },
-        max: function (a, b) {
-            return Math.max(Number(a) || -Infinity, Number(b) || -Infinity);
+        max(a, b) {
+            return Math.max(toNumber(a, -Infinity), toNumber(b, -Infinity));
         },
-        min_string: function (a, b) { return a < b ? a : b; },
-        max_string: function (a, b) { return a > b ? a : b; },
-        and: function (a, b) { return a && b; },
-        or: function (a, b) { return a || b; }
+        min_string(a, b) { return a < b ? a : b; },
+        max_string(a, b) { return a > b ? a : b; },
+        and(a, b) { return a && b; },
+        or(a, b) { return a || b; }
     },
 
     /**
